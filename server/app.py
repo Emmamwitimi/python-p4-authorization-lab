@@ -66,12 +66,10 @@ class Login(Resource):
         return {}, 401
 
 class Logout(Resource):
-
     def delete(self):
-
-        session['user_id'] = None
-        
+        session.clear()  # Clears all session data
         return {}, 204
+
 
 class CheckSession(Resource):
 
@@ -83,16 +81,31 @@ class CheckSession(Resource):
             return user.to_dict(), 200
         
         return {}, 401
-
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        # Check if user is signed in
+        if 'user_id' not in session:
+            return {'error': 'Unauthorized access'}, 401
+        
+        # Fetch members-only articles
+        member_only_articles = [article.to_dict() for article in Article.query.filter_by(is_member_only=True).all()]
+        return make_response(jsonify(member_only_articles), 200)
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        # Check if user is signed in
+        if 'user_id' not in session:
+            return {'error': 'Unauthorized access'}, 401
+        
+        # Fetch the specified members-only article
+        article = Article.query.filter(Article.id == id, Article.is_member_only == True).first()
+        
+        if article:
+            return make_response(jsonify(article.to_dict()), 200)
+        else:
+            return {'error': 'Article not found or not authorized'}, 404
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
